@@ -19,6 +19,7 @@
 
 #include <Wire.h>
 #include <SPI.h>
+#include <WiFi101.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <Adafruit_GFX.h>
@@ -58,6 +59,12 @@ Adafruit_BME280 bme; // I2C
   #define LED      13
 #endif
 
+char ssid[] = "****"; //  your network SSID (name)
+char pass[] = "****";    // your network password (use for WPA, or use as key for WEP)
+int keyIndex = 0;            // your network key Index number (needed only for WEP)
+int status = WL_IDLE_STATUS;
+char server[] = "www.martyweb.com"; 
+WiFiClient client;
 
 #if (SSD1306_LCDHEIGHT != 32)
  #error("Height incorrect, please fix Adafruit_SSD1306.h!");
@@ -67,14 +74,17 @@ int sel;
 
 void setup() {
 
+  //Configure pins for Adafruit ATWINC1500 Feather
+  WiFi.setPins(8,7,4,2);
   
-  
-//  Serial.begin(9600);
-//  Serial.println(F("BME280 and OLED test"));
-
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  Serial.println("BME280, OLED, and WIFI test");
 
   if (!bme.begin()) {
-//    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (1);
   }
 
@@ -87,7 +97,12 @@ void setup() {
   // Since the buffer is intialized with an Adafruit splashscreen
   // internally, this will display the splashscreen.
   display.display();
-  delay(1000);
+  delay(500);
+
+  //attempt to connect
+  if(!connectToWIFI()) sendToDisplay("Error connecting", 2000, true);
+  
+ 
  
   // Clear the buffer.
   display.clearDisplay();
@@ -100,29 +115,153 @@ void setup() {
   
 }
 
+void sendToServer(float temp, float alt, float pres, float hum){
+  Serial.println("\nStarting connection to server...");
+  // if you get a connection, report back via serial:
+  if (client.connect(server, 80)) {
+    Serial.println("connected to server");
+    // Make a HTTP request:
+    client.print("GET /adafruitTemp/index.php?tmp=");
+    client.print(temp);
+    client.print("&alt=");
+    client.print(alt);
+    client.print("&pres=");
+    client.print(pres);
+    client.print("&hum=");
+    client.print(hum);
+    client.println(" HTTP/1.1");
+    client.println("Host: www.martyweb.com");
+    client.println("Connection: close");
+    client.println();
+  }
+
+  
+
+}
+
+void sendToDisplay(String message, int delayTime, bool clearDisplay){
+  if(clearDisplay)display.clearDisplay();
+  display.setTextSize(1.5);
+  display.setTextColor(WHITE);
+  if(clearDisplay)display.setCursor(0,0);
+  display.print(message);
+  display.display(); // actually display all of the above
+  delay(delayTime);
+}
+
+bool connectToWIFI(){
+ 
+  // check for the presence of the shield:
+  if (WiFi.status() == WL_NO_SHIELD) {
+    Serial.println("WiFi shield not present");
+    // don't continue:
+    while (true);
+  }
+  
+  // attempt to connect to Wifi network:
+  int x = 0;
+  while (status != WL_CONNECTED) {
+    if(x>=5)return false; //try x times before giving up
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(ssid);
+
+    sendToDisplay("Connecting to ", 0, true);
+    sendToDisplay(ssid, 2000, false);
+    
+    
+    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+    status = WiFi.begin(ssid, pass);
+
+    x++;
+    delay(5000); // wait x seconds for connection:
+  }
+  Serial.println("Connected to wifi");
+
+  sendToDisplay("Connected to ", 0, true);
+  sendToDisplay(ssid, 1000, false);
+  
+  printWifiStatus();
+  return true;
+}
+
+void printWifiStatus() {
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+
+  // print your WiFi shield's IP address:
+  IPAddress ip = WiFi.localIP();
+  String ip_str = String(ip[0]) + String(".") +\
+  String(ip[1]) + String(".") +\
+  String(ip[2]) + String(".") +\
+  String(ip[3])  ;
+  
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+
+  // print the received signal strength:
+  long rssi = WiFi.RSSI();
+  Serial.print("signal strength (RSSI):");
+  Serial.print(rssi);
+  Serial.println(" dBm");
+
+  sendToDisplay("IP ", 0, true);
+  sendToDisplay(ip_str, 4000, false);
+  
+}
+
 void loop() {
 
+  float temp = ((bme.readTemperature()*180)/100)+32;
+  float alt = bme.readAltitude(SEALEVELPRESSURE_HPA);
+  float pres = bme.readPressure() / 100.0F;
+  float hum = bme.readHumidity();
+  
+
+  //send data to web server
+  if (!client.connected()) {
+    sendToServer(temp, alt, pres, hum);
+  }
+
+  //write output from web server
+  while (client.available()) {
+    char c = client.read();
+    Serial.write(c);
+
+  }
+  
+  // if the server's disconnected, stop the client:
+//  if (!client.connected()) {
+//    Serial.println();
+//    Serial.println("disconnecting from server.");
+//    client.stop();
+//
+//    // do nothing forevermore:
+//    //while (true);
+//  }
+
+    
     
     if(!sel)sel=1;
   
-//    Serial.print("Temperature = ");
-//    Serial.print(bme.readTemperature());
-//    Serial.println(" *C");
-//
-//    Serial.print("Pressure = ");
-//
-//    Serial.print(bme.readPressure() / 100.0F);
-//    Serial.println(" hPa");
-//
-//    Serial.print("Approx. Altitude = ");
-//    Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-//    Serial.println(" m");
-//
-//    Serial.print("Humidity = ");
-//    Serial.print(bme.readHumidity());
-//    Serial.println(" %");
-//
-//    Serial.println();
+    Serial.print("Temperature = ");
+    Serial.print(temp);
+    Serial.println(" *F");
+
+    Serial.print("Pressure = ");
+
+    Serial.print(pres);
+    Serial.println(" hPa");
+
+    Serial.print("Approx. Altitude = ");
+    Serial.print(alt);
+    Serial.println(" m");
+
+    Serial.print("Humidity = ");
+    Serial.print(hum);
+    Serial.println(" %");
+
+    Serial.println();
 
     if (!digitalRead(BUTTON_A)) sel=1;
     if (!digitalRead(BUTTON_B)) sel=2;
@@ -147,7 +286,7 @@ void loop() {
       break;
     case 1:
       display.print("tmp:");
-      display.print(((bme.readTemperature()*180)/100)+32); //convert to F
+      display.print(temp); //convert to F
       //display.print(sel);
       break;
     default:
@@ -162,5 +301,5 @@ void loop() {
     display.setCursor(0,0);
     display.display(); // actually display all of the above
 
-    delay(2000);
+    delay(10000);
 }
