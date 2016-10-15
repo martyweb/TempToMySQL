@@ -59,8 +59,8 @@ Adafruit_BME280 bme; // I2C
   #define LED      13
 #endif
 
-char ssid[] = "****"; //  your network SSID (name)
-char pass[] = "****";    // your network password (use for WPA, or use as key for WEP)
+char ssid[] = "***"; //  your network SSID (name)
+char pass[] = "***";    // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;            // your network key Index number (needed only for WEP)
 int status = WL_IDLE_STATUS;
 char server[] = "www.martyweb.com"; 
@@ -78,13 +78,11 @@ void setup() {
   WiFi.setPins(8,7,4,2);
   
   Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
-  Serial.println("BME280, OLED, and WIFI test");
+
+  if(Serial)Serial.println("BME280, OLED, and WIFI test");
 
   if (!bme.begin()) {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    if(Serial)Serial.println("Could not find a valid BME280 sensor, check wiring!");
     while (1);
   }
 
@@ -116,10 +114,10 @@ void setup() {
 }
 
 void sendToServer(float temp, float alt, float pres, float hum){
-  Serial.println("\nStarting connection to server...");
+  if(Serial)Serial.println("\nStarting connection to server...");
   // if you get a connection, report back via serial:
   if (client.connect(server, 80)) {
-    Serial.println("connected to server");
+    if(Serial)Serial.println("connected to server");
     // Make a HTTP request:
     client.print("GET /adafruitTemp/index.php?tmp=");
     client.print(temp);
@@ -153,7 +151,7 @@ bool connectToWIFI(){
  
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
-    Serial.println("WiFi shield not present");
+    if(Serial)Serial.println("WiFi shield not present");
     // don't continue:
     while (true);
   }
@@ -162,8 +160,8 @@ bool connectToWIFI(){
   int x = 0;
   while (status != WL_CONNECTED) {
     if(x>=5)return false; //try x times before giving up
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);
+    if(Serial)Serial.print("Attempting to connect to SSID: ");
+    if(Serial)Serial.println(ssid);
 
     sendToDisplay("Connecting to ", 0, true);
     sendToDisplay(ssid, 2000, false);
@@ -175,7 +173,7 @@ bool connectToWIFI(){
     x++;
     delay(5000); // wait x seconds for connection:
   }
-  Serial.println("Connected to wifi");
+  if(Serial)Serial.println("Connected to wifi");
 
   sendToDisplay("Connected to ", 0, true);
   sendToDisplay(ssid, 1000, false);
@@ -186,8 +184,8 @@ bool connectToWIFI(){
 
 void printWifiStatus() {
   // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
+  if(Serial)Serial.print("SSID: ");
+  if(Serial)Serial.println(WiFi.SSID());
 
   // print your WiFi shield's IP address:
   IPAddress ip = WiFi.localIP();
@@ -196,14 +194,14 @@ void printWifiStatus() {
   String(ip[2]) + String(".") +\
   String(ip[3])  ;
   
-  Serial.print("IP Address: ");
-  Serial.println(ip);
+  if(Serial)Serial.print("IP Address: ");
+  if(Serial)Serial.println(ip);
 
   // print the received signal strength:
   long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
-  Serial.print(rssi);
-  Serial.println(" dBm");
+  if(Serial)Serial.print("signal strength (RSSI):");
+  if(Serial)Serial.print(rssi);
+  if(Serial)Serial.println(" dBm");
 
   sendToDisplay("IP ", 0, true);
   sendToDisplay(ip_str, 4000, false);
@@ -226,14 +224,14 @@ void loop() {
   //write output from web server
   while (client.available()) {
     char c = client.read();
-    Serial.write(c);
+    if(Serial)Serial.write(c);
 
   }
   
   // if the server's disconnected, stop the client:
 //  if (!client.connected()) {
-//    Serial.println();
-//    Serial.println("disconnecting from server.");
+//    if(Serial)Serial.println();
+//    if(Serial)Serial.println("disconnecting from server.");
 //    client.stop();
 //
 //    // do nothing forevermore:
@@ -244,24 +242,24 @@ void loop() {
     
     if(!sel)sel=1;
   
-    Serial.print("Temperature = ");
-    Serial.print(temp);
-    Serial.println(" *F");
+    if(Serial)Serial.print("Temperature = ");
+    if(Serial)Serial.print(temp);
+    if(Serial)Serial.println(" *F");
 
-    Serial.print("Pressure = ");
+    if(Serial)Serial.print("Pressure = ");
 
-    Serial.print(pres);
-    Serial.println(" hPa");
+    if(Serial)Serial.print(pres);
+    if(Serial)Serial.println(" hPa");
 
-    Serial.print("Approx. Altitude = ");
-    Serial.print(alt);
-    Serial.println(" m");
+    if(Serial)Serial.print("Approx. Altitude = ");
+    if(Serial)Serial.print(alt);
+    if(Serial)Serial.println(" m");
 
-    Serial.print("Humidity = ");
-    Serial.print(hum);
-    Serial.println(" %");
+    if(Serial)Serial.print("Humidity = ");
+    if(Serial)Serial.print(hum);
+    if(Serial)Serial.println(" %");
 
-    Serial.println();
+    if(Serial)Serial.println();
 
     if (!digitalRead(BUTTON_A)) sel=1;
     if (!digitalRead(BUTTON_B)) sel=2;
