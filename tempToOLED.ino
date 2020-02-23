@@ -59,8 +59,8 @@ Adafruit_BME280 bme; // I2C
   #define LED      13
 #endif
 
-char ssid[] = "***"; //  your network SSID (name)
-char pass[] = "***";    // your network password (use for WPA, or use as key for WEP)
+char ssid[] = "TurtleLand"; //  your network SSID (name)
+char pass[] = "*****";    // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;            // your network key Index number (needed only for WEP)
 int status = WL_IDLE_STATUS;
 char server[] = "www.martyweb.com"; 
